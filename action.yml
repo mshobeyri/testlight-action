@@ -1,0 +1,164 @@
+name: 'Testlight'
+description: 'Run Multimeter (.mmt) API tests, test suites, and generate docs with Testlight'
+author: 'mshobeyri'
+
+branding:
+  icon: 'zap'
+  color: 'blue'
+
+inputs:
+  file:
+    description: 'Path to the .mmt file to run'
+    required: true
+  command:
+    description: 'Command to run: run, doc, print-js (default: run)'
+    required: false
+    default: 'run'
+  env-file:
+    description: 'Path to environment file (.mmt/.yaml)'
+    required: false
+  preset:
+    description: 'Preset name from the env file'
+    required: false
+  env:
+    description: 'Environment variables as key=value pairs (space-separated)'
+    required: false
+  input:
+    description: 'Input variables as key=value pairs (space-separated)'
+    required: false
+  example:
+    description: 'Run a specific example by name or index (e.g., happy-path or #1)'
+    required: false
+  report:
+    description: 'Report format: junit, html, md, mmt'
+    required: false
+  report-file:
+    description: 'Custom path for the report output file (parent directories are created)'
+    required: false
+  out:
+    description: 'Write result JSON to this file path (parent directories are created)'
+    required: false
+  quiet:
+    description: 'Minimal output (true/false)'
+    required: false
+    default: 'false'
+  log-level:
+    description: 'Log verbosity: error, warn, info, debug, trace'
+    required: false
+  version:
+    description: 'testlight version to install (default: latest). Use "beta" or "rc" for pre-release channels.'
+    required: false
+    default: 'latest'
+  working-directory:
+    description: 'Working directory for running the command'
+    required: false
+    default: '.'
+
+outputs:
+  result:
+    description: 'Path to the result JSON file (when --out is used)'
+    value: ${{ steps.run.outputs.result }}
+  report:
+    description: 'Path to the generated report file (when --report is used)'
+    value: ${{ steps.run.outputs.report }}
+  exit-code:
+    description: 'Exit code of the testlight command'
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install testlight
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        case "${INPUT_VERSION}" in
+          latest|'')
+            npm install -g mmt-testlight
+            ;;
+          *)
+            npm install -g "mmt-testlight@${INPUT_VERSION}"
+            ;;
+        esac
+        testlight --version
+
+    - name: Run testlight
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        TL_COMMAND: ${{ inputs.command }}
+        TL_FILE: ${{ inputs.file }}
+        TL_ENV_FILE: ${{ inputs.env-file }}
+        TL_PRESET: ${{ inputs.preset }}
+        TL_ENV: ${{ inputs.env }}
+        TL_INPUT: ${{ inputs.input }}
+        TL_EXAMPLE: ${{ inputs.example }}
+        TL_REPORT: ${{ inputs.report }}
+        TL_REPORT_FILE: ${{ inputs.report-file }}
+        TL_OUT: ${{ inputs.out }}
+        TL_QUIET: ${{ inputs.quiet }}
+        TL_LOG_LEVEL: ${{ inputs.log-level }}
+      run: |
+        set +e
+        args=()
+        if [[ -n "${TL_LOG_LEVEL}" ]]; then
+          args+=(--log-level "${TL_LOG_LEVEL}")
+        fi
+        args+=("${TL_COMMAND:-run}" "${TL_FILE}")
+
+        if [[ -n "${TL_ENV_FILE}" ]]; then
+          args+=(--env-file "${TL_ENV_FILE}")
+        fi
+        if [[ -n "${TL_PRESET}" ]]; then
+          args+=(--preset "${TL_PRESET}")
+        fi
+        if [[ -n "${TL_ENV}" ]]; then
+          # Space-separated KEY=VALUE pairs, same as the CLI -e form.
+          # shellcheck disable=SC2206
+          env_pairs=(${TL_ENV})
+          args+=(-e "${env_pairs[@]}")
+        fi
+        if [[ -n "${TL_INPUT}" ]]; then
+          # shellcheck disable=SC2206
+          input_pairs=(${TL_INPUT})
+          args+=(-i "${input_pairs[@]}")
+        fi
+        if [[ -n "${TL_EXAMPLE}" ]]; then
+          args+=(--example "${TL_EXAMPLE}")
+        fi
+        if [[ -n "${TL_REPORT}" ]]; then
+          args+=(--report "${TL_REPORT}")
+        fi
+        if [[ -n "${TL_REPORT_FILE}" ]]; then
+          mkdir -p "$(dirname "${TL_REPORT_FILE}")"
+          args+=(--report-file "${TL_REPORT_FILE}")
+        fi
+        if [[ -n "${TL_OUT}" ]]; then
+          mkdir -p "$(dirname "${TL_OUT}")"
+          args+=(--out "${TL_OUT}")
+        fi
+        if [[ "${TL_QUIET}" == "true" ]]; then
+          args+=(--quiet)
+        fi
+
+        echo "Running: testlight ${args[*]}"
+        testlight "${args[@]}"
+        EXIT_CODE=$?
+
+        echo "exit-code=${EXIT_CODE}" >> "${GITHUB_OUTPUT}"
+        if [[ -n "${TL_OUT}" ]]; then
+          echo "result=${TL_OUT}" >> "${GITHUB_OUTPUT}"
+        fi
+        if [[ -n "${TL_REPORT_FILE}" ]]; then
+          echo "report=${TL_REPORT_FILE}" >> "${GITHUB_OUTPUT}"
+        fi
+
+        exit "${EXIT_CODE}"
