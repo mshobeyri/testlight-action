@@ -7,7 +7,7 @@ This is the Marketplace listing for Testlight. The same composite action also li
 ## Usage
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
@@ -32,7 +32,7 @@ This repo includes runnable files under [`examples/`](examples/). They hit the p
 | [`examples/suite.mmt`](examples/suite.mmt) | Two-test suite |
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
 - uses: ./
   with:
     file: examples/suite.mmt
@@ -76,7 +76,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
         with:
@@ -90,7 +90,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run tests
         uses: mshobeyri/testlight-action@v1
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: results/junit.xml
@@ -116,7 +116,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate docs
         uses: mshobeyri/testlight-action@v1
