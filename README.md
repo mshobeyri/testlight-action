@@ -2,7 +2,7 @@
 
 Run Multimeter (`.mmt`) API tests, test suites, and generate documentation in GitHub Actions.
 
-This is the Marketplace listing for Testlight. Source in the [Multimeter](https://github.com/mshobeyri/multimeter) repo is `mmtaction/` (published to this repo on release).
+Source in [Multimeter](https://github.com/mshobeyri/multimeter) is `mmtaction/`. This repo is the published Action.
 
 ## Usage
 
@@ -11,8 +11,6 @@ This is the Marketplace listing for Testlight. Source in the [Multimeter](https:
 - uses: mshobeyri/testlight-action@v1
   with:
     file: tests/suite.mmt
-    env-file: tests/env.mmt
-    preset: ci
     report: junit
     report-file: results/junit.xml
 ```
@@ -21,57 +19,20 @@ The `version` input defaults to `latest`. Pass `pre` or `X.Y.Z` to pin `mmt-test
 
 Docs: [Install Testlight](https://mmt.dev/docs/features/testlight/install) · [Run in CI](https://mmt.dev/docs/tasks/run-in-ci)
 
-## Sample pipelines
+## Samples
 
-Copy-paste pipelines live under [`examples/`](examples/). They run the `.mmt` files in that folder against `https://test.mmt.dev` (no secrets).
+`.mmt` files live under [`examples/tests/`](examples/tests/). The **CI** workflow (`ci.yml`) is separate so this Action repo can run them with `uses: ./`.
 
 | File | What it is |
 |---|---|
-| [`examples/github-actions.yml`](examples/github-actions.yml) | Consumer GitHub workflow (`uses: mshobeyri/testlight-action@v1`) |
-| [`examples/azure-pipelines.yml`](examples/azure-pipelines.yml) | Same job as Azure task `Testlight@1` with YAML `inputs:` |
-| [`examples/suite.mmt`](examples/suite.mmt) | Two-test suite those pipelines run |
-| [`examples/echo_test.mmt`](examples/echo_test.mmt) | Single POST echo test |
-| [`examples/get_json.mmt`](examples/get_json.mmt) | GET JSON API |
+| [`ci.yml`](ci.yml) | Workflow published as `.github/workflows/ci.yml` |
+| [`examples/tests/suite.mmt`](examples/tests/suite.mmt) | Runs `get.mmt` then `post.mmt` |
+| [`examples/tests/get.mmt`](examples/tests/get.mmt) | GET `https://test.mmt.dev/json` |
+| [`examples/tests/post.mmt`](examples/tests/post.mmt) | POST echo |
 
-The **Samples** workflow in this repo is the self-test (`uses: ./`). GitHub does not run `azure-pipelines.yml`; point Azure DevOps at this repo (or copy that file) to run the Azure version.
+In your repo, copy `examples/tests/` to `tests/` and use `mshobeyri/testlight-action@v1` as in Usage.
 
-### GitHub vs Azure
-
-| Step | GitHub Actions | Azure Pipelines |
-|---|---|---|
-| Fetch this repo’s `.mmt` files | `actions/checkout@v6` | `checkout: self` (pipeline step, not the task) |
-| Run Testlight | `uses: mshobeyri/testlight-action@v1` + `with:` | `- task: Testlight@1` + `inputs:` |
-| Publish results | `actions/upload-artifact` | `PublishTestResults@2` (Tests tab) |
-
-Azure already clones the triggering repo. The Testlight task only takes YAML parameters and runs the `.mmt` file — it does not fetch git or start your app.
-
-GitHub:
-
-```yaml
-- uses: actions/checkout@v6
-- uses: mshobeyri/testlight-action@v1
-  with:
-    file: examples/suite.mmt
-    report: junit
-    report-file: results/junit.xml
-```
-
-Azure:
-
-```yaml
-steps:
-  - checkout: self
-  - task: Testlight@1
-    inputs:
-      file: examples/suite.mmt
-      report: junit
-      reportFile: results/junit.xml
-  - task: PublishTestResults@2
-    condition: always()
-    inputs:
-      testResultsFormat: JUnit
-      testResultsFiles: results/junit.xml
-```
+Azure Pipelines is a separate product (`mmtazure/`, `- task: Testlight@1`). See [Run in CI](https://mmt.dev/docs/tasks/run-in-ci).
 
 ## Inputs
 

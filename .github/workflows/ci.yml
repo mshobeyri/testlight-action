@@ -1,0 +1,26 @@
+# Copied to mshobeyri/testlight-action as .github/workflows/ci.yml.
+# Runs this repo's Action (uses: ./) against examples/tests.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./
+        with:
+          file: examples/tests/suite.mmt
+          report: junit
+          report-file: results/junit.xml
+          version: latest
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: testlight-junit
+          path: results/junit.xml
